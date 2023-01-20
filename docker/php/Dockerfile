@@ -1,12 +1,5 @@
-FROM phpdockerio/php:8.1-fpm
-
+FROM phpdockerio/php80-fpm
 USER root
 
-RUN apt-get update && \
-    apt-get install -y \
-    php8.1-imagick \
-    php8.1-curl \
-    php8.1-zip \
-    php8.1-pdo \
-    php8.1-xml \
-    php8.1-mbstring
+RUN apt-get update && apt install -y php-imagick php-curl php-zip php8.0-pdo php-xml php-mbstring
+

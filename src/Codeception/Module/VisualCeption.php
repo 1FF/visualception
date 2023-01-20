@@ -38,9 +38,15 @@ class VisualCeption extends CodeceptionModule implements MultiSession
         'forceFullScreenShot' => false,
     ];
 
+    /**
+     * @var bool
+     */
     protected bool $saveCurrentImageIfFailure;
-    private string $referenceImageDir;
 
+    /**
+     * @var string
+     */
+    private string $referenceImageDir;
 
     /**
      * This var represents the directory where the taken images are stored
@@ -48,6 +54,9 @@ class VisualCeption extends CodeceptionModule implements MultiSession
      */
     private string $currentImageDir;
 
+    /**
+     * @var float
+     */
     private float $maximumDeviation = 0.0;
 
     /**
@@ -257,8 +266,9 @@ class VisualCeption extends CodeceptionModule implements MultiSession
      * @param $excludeElements
      * @param $deviation
      * @param $seeChanges
+     * @param bool $fullScreenshot
      * @return void
-     * @throws \Exception
+     * @throws ImageDeviationException
      */
     private function compareVisualChanges($identifier, $elementID, $excludeElements, $deviation, $seeChanges, $fullScreenshot = true): void
     {
@@ -271,7 +281,6 @@ class VisualCeption extends CodeceptionModule implements MultiSession
         if (is_null($deviationResult["deviationImage"])) {
             return;
         }
-
         $outOfMaxDeviation = !$seeChanges && $deviationResult["deviation"] > $maximumDeviation;
 
         if ($outOfMaxDeviation) {
@@ -281,7 +290,7 @@ class VisualCeption extends CodeceptionModule implements MultiSession
             while ($outOfMaxDeviation) {
                 $currentTime = time() - $startTime;
 
-                if($currentTime > $timeout){
+                if ($currentTime > $timeout) {
                     break;
                 }
 
@@ -310,13 +319,14 @@ class VisualCeption extends CodeceptionModule implements MultiSession
      */
     private function createImageDeviationException($identifier, $compareScreenshotPath, $deviation, $seeChanges, $currentTime = null): ImageDeviationException
     {
+        $message = "The deviation of the taken screenshot is too high";
         if ($seeChanges) {
-            $message = "The deviation of the taken screenshot is too low ({$deviation}%) \nSee {$compareScreenshotPath} for a deviation screenshot.";
+            $message = "The deviation of the taken screenshot is too low";
+        } else {
+            $message = "The deviation of the taken screenshot is too high";
         }
 
-        if(!$seeChanges){
-            $message = " ({$deviation}%) \nSee {$compareScreenshotPath} for a deviation screenshot with timeout $currentTime seconds.";
-        }
+        $message .= " (" . $deviation . "%).\nSee $compareScreenshotPath for a deviation screenshot.";
 
         return new ImageDeviationException(
             $message,
@@ -504,7 +514,7 @@ class VisualCeption extends CodeceptionModule implements MultiSession
             $isViewPortHeightBiggerThanPageHeight = $height > $viewportHeight;
 
             if ($isViewPortHeightBiggerThanPageHeight) {
-                for ($i = 0; $i < intval($itr); $i++) {
+                for ($i = 0; $i < (int)$itr; $i++) {
                     usleep(100000);
 
                     $screenshotBinary = $this->webDriver->takeScreenshot();
@@ -523,214 +533,226 @@ class VisualCeption extends CodeceptionModule implements MultiSession
                             throw new \Exception('Error on scroll and make screenshot');
                         }
 
-                        if ($pageTop == $height - $viewportHeight) {
-                            break;
-                        }
-                    }
-                }
+            if ($pageTop == $height - $viewportHeight) {
+                break;
             }
+        }
+    }
+}
 
-            if (!is_int($itr) || $height <= $viewportHeight) {
-                $screenshotBinary = $this->webDriver->takeScreenshot();
-                $screenShotImage->readimageblob($screenshotBinary);
-                $heightOffset = $viewportHeight - ($height - (intval($itr) * $viewportHeight));
+if (!is_int($itr) || $height <= $viewportHeight) {
+    $screenshotBinary = $this->webDriver->takeScreenshot();
+    $screenShotImage->readimageblob($screenshotBinary);
+    $heightOffset = $viewportHeight - ($height - ((int)$itr * $viewportHeight));
 
-                if ($isViewPortHeightBiggerThanPageHeight) {
-                    $screenShotImage->cropImage(0, 0, 0, $heightOffset * $devicePixelRatio);
-                }
-            }
+    if ($isViewPortHeightBiggerThanPageHeight) {
+        $screenShotImage->cropImage(0, 0, 0, $heightOffset * $devicePixelRatio);
+    }
+}
 
-            $screenShotImage->resetIterator();
-            $fullShot = $screenShotImage->appendImages(true);
+$screenShotImage->resetIterator();
+$fullShot = $screenShotImage->appendImages(true);
 
-            if ($this->config["fullScreenShot"] !== true) {
-                $fullShot->cropImage((int)$coords['width'], (int)$coords['height'], (int)$coords['offset_x'], (int)$coords['offset_y']);
-            }
-            $fullShot->writeImage($elementPath);
+if ($this->config["fullScreenShot"] !== true) {
+    $fullShot->cropImage((int)$coords['width'], (int)$coords['height'], (int)$coords['offset_x'], (int)$coords['offset_y']);
+}
+$fullShot->writeImage($elementPath);
 
             $this->webDriver->executeScript("window.scrollTo(0, 0);");
 
-        } else {
-            $screenshotBinary = $this->webDriver->takeScreenshot();
+} else {
+    $screenshotBinary = $this->webDriver->takeScreenshot();
 
-            $screenShotImage->readimageblob($screenshotBinary);
-            $screenShotImage->cropImage((int)$coords['width'], (int)$coords['height'], (int)$coords['offset_x'], (int)$coords['offset_y']);
-            $screenShotImage->writeImage($elementPath);
+    $screenShotImage->readimageblob($screenshotBinary);
+    $screenShotImage->cropImage((int)$coords['width'], (int)$coords['height'], (int)$coords['offset_x'], (int)$coords['offset_y']);
+    $screenShotImage->writeImage($elementPath);
+}
+
+$this->resetHideElementsForScreenshot($excludeElements);
+
+return $elementPath;
+}
+
+private
+function hideScrollbarsForScreenshot(): void
+{
+    try {
+        if ($this->webDriver->executeScript("return document.documentElement.scrollWidth > document.documentElement.clientWidth;")) {
+            $this->webDriver->executeScript("document.body.style.overflowX = 'hidden';");
         }
+    } catch (\Exception $e) {
+    };
+}
 
-        $this->resetHideElementsForScreenshot($excludeElements);
+/**
+ * Hide the given elements with CSS visibility = hidden. Wait a second after hiding
+ *
+ * @param array $excludeElements Array of strings, which should be not visible
+ */
+private
+function hideElementsForScreenshot(array $excludeElements)
+{
+    foreach ($excludeElements as $element) {
+        $this->hideElement($element);
+    }
+    if (!empty($excludeElements)) {
+        $this->webDriverModule->waitForElementNotVisible(array_pop($excludeElements));
+    }
+}
 
-        return $elementPath;
+/**
+ * Reset hiding the given elements with CSS visibility = visible. Wait a second after reset hiding
+ *
+ * @param array $excludeElements array of strings, which should be visible again
+ */
+private
+function resetHideElementsForScreenshot(array $excludeElements)
+{
+    foreach ($excludeElements as $element) {
+        $this->showElement($element);
+    }
+    if (!empty($excludeElements)) {
+        $this->webDriverModule->waitForElementVisible(array_pop($excludeElements));
+    }
+}
+
+/**
+ * Returns the image path including the filename of a deviation image
+ *
+ * @param $identifier identifies your test object
+ * @return string Path of the deviation image
+ */
+private
+function getDeviationScreenshotPath($identifier, $alternativePrefix = '')
+{
+    $debugDir = Configuration::outputDir() . 'debug/';
+    $prefix = ($alternativePrefix === '') ? 'compare' : $alternativePrefix;
+    return $debugDir . $prefix . $this->getScreenshotName($identifier);
+}
+
+
+/**
+ * Compare two images by its identifiers.
+ * If the reference image doesn't exists
+ * the image is copied to the reference path.
+ *
+ * @param $identifier identifies your test object
+ * @return array Test result of image comparison
+ */
+private
+function compare($identifier)
+{
+    $expectedImagePath = $this->getExpectedScreenshotPath($identifier);
+    $currentImagePath = $this->getScreenshotPath($identifier);
+
+    if (!file_exists($expectedImagePath)) {
+        $this->debug("Copying image (from $currentImagePath to $expectedImagePath");
+        copy($currentImagePath, $expectedImagePath);
+        return array(null, 0, 'currentImage' => null);
+    } else {
+        return $this->compareImages($expectedImagePath, $currentImagePath);
+    }
+}
+
+/**
+ * Compares to images by given file path
+ *
+ * @param $image1 Path to the exprected reference image
+ * @param $image2 Path to the current image in the screenshot
+ * @return array Result of the comparison
+ */
+private
+function compareImages($image1, $image2)
+{
+    $this->debug("Trying to compare $image1 with $image2");
+
+    $imagick1 = new \Imagick($image1);
+    $imagick2 = new \Imagick($image2);
+
+    $imagick1Size = $imagick1->getImageGeometry();
+    $imagick2Size = $imagick2->getImageGeometry();
+
+    $maxWidth = max($imagick1Size['width'], $imagick2Size['width']);
+    $maxHeight = max($imagick1Size['height'], $imagick2Size['height']);
+
+    $imagick1->extentImage($maxWidth, $maxHeight, 0, 0);
+    $imagick2->extentImage($maxWidth, $maxHeight, 0, 0);
+
+    try {
+        $result = $imagick1->compareImages($imagick2, \Imagick::METRIC_MEANSQUAREERROR);
+        $result[0]->setImageFormat('png');
+        $result['currentImage'] = clone $imagick2;
+        $result['currentImage']->setImageFormat('png');
+    } catch (\ImagickException $e) {
+        $this->debug("IMagickException! could not campare image1 ($image1) and image2 ($image2).\nExceptionMessage: " . $e->getMessage());
+        $this->fail($e->getMessage() . ", image1 $image1 and image2 $image2.");
+    }
+    return $result;
+}
+
+protected
+function _initVisualReport()
+{
+    if (!$this->config['report']) {
+        return;
     }
 
-    private function hideScrollbarsForScreenshot(): void
-    {
-        try {
-            if ($this->webDriver->executeScript("return document.documentElement.scrollWidth > document.documentElement.clientWidth;")){
-                $this->webDriver->executeScript("document.body.style.overflowX = 'hidden';");
-            }
-        } catch (\Exception $e) {};
+    $filename = 'vcresult';
+    if ($this->currentEnvironment) {
+        $filename .= '.' . $this->currentEnvironment . '.' . explode('/', $this->config['referenceImageDir'])[1];
     }
-
-    /**
-     * Hide the given elements with CSS visibility = hidden. Wait a second after hiding
-     *
-     * @param array $excludeElements Array of strings, which should be not visible
-     */
-    private function hideElementsForScreenshot(array $excludeElements)
-    {
-        foreach ($excludeElements as $element) {
-            $this->hideElement($element);
-        }
-        if (!empty($excludeElements)) {
-            $this->webDriverModule->waitForElementNotVisible(array_pop($excludeElements));
-        }
-    }
-
-    /**
-     * Reset hiding the given elements with CSS visibility = visible. Wait a second after reset hiding
-     *
-     * @param array $excludeElements array of strings, which should be visible again
-     */
-    private function resetHideElementsForScreenshot(array $excludeElements)
-    {
-        foreach ($excludeElements as $element) {
-            $this->showElement($element);
-        }
-        if (!empty($excludeElements)) {
-            $this->webDriverModule->waitForElementVisible(array_pop($excludeElements));
-        }
-    }
-
-    /**
-     * Returns the image path including the filename of a deviation image
-     *
-     * @param $identifier identifies your test object
-     * @return string Path of the deviation image
-     */
-    private function getDeviationScreenshotPath($identifier, $alternativePrefix = '')
-    {
-        $debugDir = Configuration::outputDir() . 'debug/';
-        $prefix = ($alternativePrefix === '') ? 'compare' : $alternativePrefix;
-        return $debugDir . $prefix . $this->getScreenshotName($identifier);
-    }
-
-
-    /**
-     * Compare two images by its identifiers.
-     * If the reference image doesn't exists
-     * the image is copied to the reference path.
-     *
-     * @param $identifier identifies your test object
-     * @return array Test result of image comparison
-     */
-    private function compare($identifier)
-    {
-        $expectedImagePath = $this->getExpectedScreenshotPath($identifier);
-        $currentImagePath = $this->getScreenshotPath($identifier);
-
-        if (!file_exists($expectedImagePath)) {
-            $this->debug("Copying image (from $currentImagePath to $expectedImagePath");
-            copy($currentImagePath, $expectedImagePath);
-            return array(null, 0, 'currentImage' => null);
-        } else {
-            return $this->compareImages($expectedImagePath, $currentImagePath);
-        }
-    }
-
-    /**
-     * Compares to images by given file path
-     *
-     * @param $image1 Path to the exprected reference image
-     * @param $image2 Path to the current image in the screenshot
-     * @return array Result of the comparison
-     */
-    private function compareImages($image1, $image2)
-    {
-        $this->debug("Trying to compare $image1 with $image2");
-
-        $imagick1 = new \Imagick($image1);
-        $imagick2 = new \Imagick($image2);
-
-        $imagick1Size = $imagick1->getImageGeometry();
-        $imagick2Size = $imagick2->getImageGeometry();
-
-        $maxWidth = max($imagick1Size['width'], $imagick2Size['width']);
-        $maxHeight = max($imagick1Size['height'], $imagick2Size['height']);
-
-        $imagick1->extentImage($maxWidth, $maxHeight, 0, 0);
-        $imagick2->extentImage($maxWidth, $maxHeight, 0, 0);
-
-        try {
-            $result = $imagick1->compareImages($imagick2, \Imagick::METRIC_MEANSQUAREERROR);
-            $result[0]->setImageFormat('png');
-            $result['currentImage'] = clone $imagick2;
-            $result['currentImage']->setImageFormat('png');
-        } catch (\ImagickException $e) {
-            $this->debug("IMagickException! could not campare image1 ($image1) and image2 ($image2).\nExceptionMessage: " . $e->getMessage());
-            $this->fail($e->getMessage() . ", image1 $image1 and image2 $image2.");
-        }
-        return $result;
-    }
-
-    protected function _initVisualReport()
-    {
-        if (!$this->config['report']) {
-            return;
-        }
-
-        $filename = 'vcresult';
-        if ($this->currentEnvironment) {
-            $filename .= '.' . $this->currentEnvironment . '.' . explode('/', $this->config['referenceImageDir'])[1];
-        }
 
         $this->logFile = Configuration::outputDir() . $filename . '.html';
 
-        if (array_key_exists('templateVars', $this->config)) {
-            $this->templateVars = $this->config["templateVars"];
-        }
-
-        if (array_key_exists('templateFile', $this->config)) {
-            $this->templateFile = (file_exists($this->config["templateFile"]) ? "" : __DIR__) . $this->config["templateFile"];
-        } else {
-            $this->templateFile = __DIR__ . "/../Report/template.php";
-        }
-        $this->debug("VisualCeptionReporter: templateFile = " . $this->templateFile);
+    if (array_key_exists('templateVars', $this->config)) {
+        $this->templateVars = $this->config["templateVars"];
     }
 
-    /**
-     * Get a new loaded module
-     */
-    public function _initializeSession(): void
-    {
-        $browserModule = $this->getBrowserModule();
-
-        $this->webDriverModule = $browserModule;
-        $this->webDriver = $this->webDriverModule->webDriver;
+    if (array_key_exists('templateFile', $this->config)) {
+        $this->templateFile = (file_exists($this->config["templateFile"]) ? "" : __DIR__) . $this->config["templateFile"];
+    } else {
+        $this->templateFile = __DIR__ . "/../Report/template.php";
     }
+    $this->debug("VisualCeptionReporter: templateFile = " . $this->templateFile);
+}
 
-    /**
-     * Loads current RemoteWebDriver instance as a session
-     *
-     * @param $session
-     */
-    public function _loadSession($session): void
-    {
-        $this->webDriver = $session;
-    }
+/**
+ * Get a new loaded module
+ */
+public
+function _initializeSession(): void
+{
+    $browserModule = $this->getBrowserModule();
 
-    /**
-     * Returns current WebDriver session for saving
-     *
-     * @return RemoteWebDriver
-     */
-    public function _backupSession()
-    {
-        return $this->webDriver;
-    }
+    $this->webDriverModule = $browserModule;
+    $this->webDriver = $this->webDriverModule->webDriver;
+}
 
-    public function _closeSession($session = null): void
-    {
-        // this method will never be needed
-    }
+/**
+ * Loads current RemoteWebDriver instance as a session
+ *
+ * @param $session
+ */
+public
+function _loadSession($session): void
+{
+    $this->webDriver = $session;
+}
+
+/**
+ * Returns current WebDriver session for saving
+ *
+ * @return RemoteWebDriver
+ */
+public
+function _backupSession()
+{
+    return $this->webDriver;
+}
+
+public
+function _closeSession($session = null): void
+{
+    // this method will never be needed
+}
 }
