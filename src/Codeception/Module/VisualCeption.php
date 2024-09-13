@@ -552,11 +552,6 @@ class VisualCeption extends CodeceptionModule implements MultiSession
         return $elementPath;
     }
 
-    private function get()
-    {
-
-    }
-
     private function hideScrollbarsForScreenshot(): void
     {
         try {
