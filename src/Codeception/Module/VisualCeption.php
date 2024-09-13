@@ -276,7 +276,7 @@ class VisualCeption extends CodeceptionModule implements MultiSession
         if ($outOfMaxDeviation) {
             $retries = 0;
 
-            while ($retries < 3 || $outOfMaxDeviation){
+            while ($retries < 5 && $outOfMaxDeviation){
                 $deviationResult = $this->getDeviation($identifier, $elementID, $fullScreenshot, $excludeElements);
                 $outOfMaxDeviation = $deviationResult["deviation"] > $maximumDeviation;
                 $retries++;
