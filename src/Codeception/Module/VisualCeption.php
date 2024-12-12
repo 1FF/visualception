@@ -678,10 +678,12 @@ class VisualCeption extends CodeceptionModule implements MultiSession
         if (!$this->config['report']) {
             return;
         }
+
         $filename = 'vcresult';
         if ($this->currentEnvironment) {
-            $filename .= '.' . explode('/', $this->config['referenceImageDir'])[1];
+            $filename .= '.' . $this->currentEnvironment . explode('/', $this->config['referenceImageDir'])[1];
         }
+
         $this->logFile = Configuration::outputDir() . $filename . '.html';
 
         if (array_key_exists('templateVars', $this->config)) {
