@@ -681,7 +681,7 @@ class VisualCeption extends CodeceptionModule implements MultiSession
 
         $filename = 'vcresult';
         if ($this->currentEnvironment) {
-            $filename .= '.' . $this->currentEnvironment . explode('/', $this->config['referenceImageDir'])[1];
+            $filename .= '.' . $this->currentEnvironment . '.' . explode('/', $this->config['referenceImageDir'])[1];
         }
 
         $this->logFile = Configuration::outputDir() . $filename . '.html';
