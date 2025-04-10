@@ -3,10 +3,10 @@ declare(strict_types=1);
 
 namespace Codeception\Module;
 
-use Codeception\Lib\Interfaces\MultiSession;
 use Codeception\Configuration;
 use Codeception\Exception\ConfigurationException;
 use Codeception\Exception\ImageDeviationException;
+use Codeception\Lib\Interfaces\MultiSession;
 use Codeception\Module as CodeceptionModule;
 use Codeception\Test\Descriptor;
 use Codeception\TestInterface;
@@ -38,9 +38,15 @@ class VisualCeption extends CodeceptionModule implements MultiSession
         'forceFullScreenShot' => false,
     ];
 
+    /**
+     * @var bool
+     */
     protected bool $saveCurrentImageIfFailure;
-    private string $referenceImageDir;
 
+    /**
+     * @var string
+     */
+    private string $referenceImageDir;
 
     /**
      * This var represents the directory where the taken images are stored
@@ -48,6 +54,9 @@ class VisualCeption extends CodeceptionModule implements MultiSession
      */
     private string $currentImageDir;
 
+    /**
+     * @var float
+     */
     private float $maximumDeviation = 0.0;
 
     /**
@@ -257,10 +266,11 @@ class VisualCeption extends CodeceptionModule implements MultiSession
      * @param $excludeElements
      * @param $deviation
      * @param $seeChanges
+     * @param bool $fullScreenshot
      * @return void
-     * @throws \Exception
+     * @throws ImageDeviationException|\ImagickException
      */
-    private function compareVisualChanges($identifier, $elementID, $excludeElements, $deviation, $seeChanges, $fullScreenshot = true): void
+    private function compareVisualChanges($identifier, $elementID, $excludeElements, $deviation, $seeChanges, bool $fullScreenshot = true): void
     {
         $excludeElements = (array)$excludeElements;
 
@@ -281,7 +291,7 @@ class VisualCeption extends CodeceptionModule implements MultiSession
             while ($outOfMaxDeviation) {
                 $currentTime = time() - $startTime;
 
-                if($currentTime > $timeout){
+                if ($currentTime > $timeout) {
                     break;
                 }
 
@@ -306,17 +316,17 @@ class VisualCeption extends CodeceptionModule implements MultiSession
      * @param $compareScreenshotPath
      * @param $deviation
      * @param $seeChanges
-     * @return \Codeception\Exception\ImageDeviationException
+     * @param null $currentTime
+     * @return ImageDeviationException
      */
     private function createImageDeviationException($identifier, $compareScreenshotPath, $deviation, $seeChanges, $currentTime = null): ImageDeviationException
     {
+        $message = "The deviation of the taken screenshot is too high";
         if ($seeChanges) {
-            $message = "The deviation of the taken screenshot is too low ({$deviation}%) \nSee {$compareScreenshotPath} for a deviation screenshot.";
+            $message = "The deviation of the taken screenshot is too low";
         }
 
-        if(!$seeChanges){
-            $message = " ({$deviation}%) \nSee {$compareScreenshotPath} for a deviation screenshot with timeout $currentTime seconds.";
-        }
+        $message .= " ({$deviation}%) \nSee {$compareScreenshotPath} for a deviation screenshot with timeout $currentTime seconds.";
 
         return new ImageDeviationException(
             $message,
@@ -369,6 +379,7 @@ class VisualCeption extends CodeceptionModule implements MultiSession
      * @param string $elementID DOM ID of the element, which should be screenshotted
      * @param array $excludeElements Element names, which should not appear in the screenshot
      * @return array Includes the calculation of deviation in percent and the diff-image
+     * @throws \ImagickException
      */
     private function getDeviation($identifier, $elementID, $fullScreenshot, array $excludeElements = []): array
     {
@@ -504,7 +515,7 @@ class VisualCeption extends CodeceptionModule implements MultiSession
             $isViewPortHeightBiggerThanPageHeight = $height > $viewportHeight;
 
             if ($isViewPortHeightBiggerThanPageHeight) {
-                for ($i = 0; $i < intval($itr); $i++) {
+                for ($i = 0; $i < (int)$itr; $i++) {
                     usleep(100000);
 
                     $screenshotBinary = $this->webDriver->takeScreenshot();
@@ -533,7 +544,7 @@ class VisualCeption extends CodeceptionModule implements MultiSession
             if (!is_int($itr) || $height <= $viewportHeight) {
                 $screenshotBinary = $this->webDriver->takeScreenshot();
                 $screenShotImage->readimageblob($screenshotBinary);
-                $heightOffset = $viewportHeight - ($height - (intval($itr) * $viewportHeight));
+                $heightOffset = $viewportHeight - ($height - ((int)$itr * $viewportHeight));
 
                 if ($isViewPortHeightBiggerThanPageHeight) {
                     $screenShotImage->cropImage(0, 0, 0, $heightOffset * $devicePixelRatio);
@@ -566,10 +577,11 @@ class VisualCeption extends CodeceptionModule implements MultiSession
     private function hideScrollbarsForScreenshot(): void
     {
         try {
-            if ($this->webDriver->executeScript("return document.documentElement.scrollWidth > document.documentElement.clientWidth;")){
+            if ($this->webDriver->executeScript("return document.documentElement.scrollWidth > document.documentElement.clientWidth;")) {
                 $this->webDriver->executeScript("document.body.style.overflowX = 'hidden';");
             }
-        } catch (\Exception $e) {};
+        } catch (\Exception $e) {
+        };
     }
 
     /**
@@ -678,7 +690,6 @@ class VisualCeption extends CodeceptionModule implements MultiSession
         if (!$this->config['report']) {
             return;
         }
-
         $filename = 'vcresult';
         if ($this->currentEnvironment) {
             $filename .= '.' . $this->currentEnvironment . '.' . explode('/', $this->config['referenceImageDir'])[1];
