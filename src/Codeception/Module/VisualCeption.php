@@ -3,10 +3,10 @@ declare(strict_types=1);
 
 namespace Codeception\Module;
 
-use Codeception\Lib\Interfaces\MultiSession;
 use Codeception\Configuration;
 use Codeception\Exception\ConfigurationException;
 use Codeception\Exception\ImageDeviationException;
+use Codeception\Lib\Interfaces\MultiSession;
 use Codeception\Module as CodeceptionModule;
 use Codeception\Test\Descriptor;
 use Codeception\TestInterface;
@@ -281,6 +281,7 @@ class VisualCeption extends CodeceptionModule implements MultiSession
         if (is_null($deviationResult["deviationImage"])) {
             return;
         }
+
         $outOfMaxDeviation = !$seeChanges && $deviationResult["deviation"] > $maximumDeviation;
 
         if ($outOfMaxDeviation) {
@@ -588,8 +589,7 @@ class VisualCeption extends CodeceptionModule implements MultiSession
      *
      * @param array $excludeElements Array of strings, which should be not visible
      */
-    private
-    function hideElementsForScreenshot(array $excludeElements)
+    private function hideElementsForScreenshot(array $excludeElements)
     {
         foreach ($excludeElements as $element) {
             $this->hideElement($element);
@@ -604,8 +604,7 @@ class VisualCeption extends CodeceptionModule implements MultiSession
      *
      * @param array $excludeElements array of strings, which should be visible again
      */
-    private
-    function resetHideElementsForScreenshot(array $excludeElements)
+    private function resetHideElementsForScreenshot(array $excludeElements)
     {
         foreach ($excludeElements as $element) {
             $this->showElement($element);
@@ -621,8 +620,7 @@ class VisualCeption extends CodeceptionModule implements MultiSession
      * @param $identifier identifies your test object
      * @return string Path of the deviation image
      */
-    private
-    function getDeviationScreenshotPath($identifier, $alternativePrefix = '')
+    private function getDeviationScreenshotPath($identifier, $alternativePrefix = '')
     {
         $debugDir = Configuration::outputDir() . 'debug/';
         $prefix = ($alternativePrefix === '') ? 'compare' : $alternativePrefix;
@@ -638,8 +636,7 @@ class VisualCeption extends CodeceptionModule implements MultiSession
      * @param $identifier identifies your test object
      * @return array Test result of image comparison
      */
-    private
-    function compare($identifier)
+    private function compare($identifier)
     {
         $expectedImagePath = $this->getExpectedScreenshotPath($identifier);
         $currentImagePath = $this->getScreenshotPath($identifier);
@@ -660,8 +657,7 @@ class VisualCeption extends CodeceptionModule implements MultiSession
      * @param $image2 Path to the current image in the screenshot
      * @return array Result of the comparison
      */
-    private
-    function compareImages($image1, $image2)
+    private function compareImages($image1, $image2)
     {
         $this->debug("Trying to compare $image1 with $image2");
 
@@ -716,8 +712,7 @@ class VisualCeption extends CodeceptionModule implements MultiSession
     /**
      * Get a new loaded module
      */
-    public
-    function _initializeSession(): void
+    public function _initializeSession(): void
     {
         $browserModule = $this->getBrowserModule();
 
@@ -730,8 +725,7 @@ class VisualCeption extends CodeceptionModule implements MultiSession
      *
      * @param $session
      */
-    public
-    function _loadSession($session): void
+    public function _loadSession($session): void
     {
         $this->webDriver = $session;
     }
@@ -741,14 +735,12 @@ class VisualCeption extends CodeceptionModule implements MultiSession
      *
      * @return RemoteWebDriver
      */
-    public
-    function _backupSession()
+    public function _backupSession()
     {
         return $this->webDriver;
     }
 
-    public
-    function _closeSession($session = null): void
+    public function _closeSession($session = null): void
     {
         // this method will never be needed
     }
