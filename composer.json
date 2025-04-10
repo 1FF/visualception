@@ -6,7 +6,7 @@
   "homepage": "https://github.com/Codeception/VisualCeption",
   "license": "MIT",
   "require": {
-    "php": ">=8.0",
+    "php": "^8.1",
     "ext-imagick": "*",
     "ext-mbstring": "*",
     "ext-zip": "*",
