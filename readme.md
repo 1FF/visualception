@@ -39,7 +39,7 @@ Make sure you have php-imagick extension installed. Run `php -m` to see if imagi
 Then add VisualCeption to composer.json:
 
 ```
-composer require "codeception/visualception:*" --dev
+composer require "1ff/module-visualception:*" --dev
 ```
 
 ### Configuration

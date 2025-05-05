@@ -5,16 +5,16 @@
   "homepage": "https://github.com/Codeception/VisualCeption",
   "license": "MIT",
   "require": {
-    "php": "^8.1",
+    "php": "^8.2",
     "ext-imagick": "*",
     "ext-mbstring": "*",
     "ext-zip": "*",
     "ext-xml": "*",
     "codeception/codeception": "^5.0",
-    "codeception/module-webdriver": "^3.2"
+    "codeception/module-webdriver": "^4.0"
   },
   "require-dev": {
-    "phpunit/phpunit": "^9.5"
+    "phpunit/phpunit": "^10.0"
   },
   "autoload": {
     "classmap": [
